@@ -10,8 +10,7 @@ namespace GeneticAlgorithmP1
     class Program
     {
 
-        private static Random _randomGen = new Random();
-        private static GeneticAlgorithm Project1;
+        private static Random _randomGen = new Random(69);
 
         static void Main(string[] args)
         {
@@ -21,28 +20,63 @@ namespace GeneticAlgorithmP1
             var lowerBound = -1;
             var upperbound = 5;
 
-            Project1 = new GeneticAlgorithm(N, Pc, Pm, lowerBound, upperbound);
+            var AverageOfAogFitness = new List<double>();
+            var AverageOfBogFitness = new List<double>();
+            var AverageOfBestOfRunFitness = new List<double>();
 
-
-            // Create New Generation
-            for (int i = 0; i < 90; i++)
+            for (int i = 0; i < 31; i++)
             {
-                Project1.AddNewGeneration();
+                var run = new GeneticAlgorithm(N, Pc, Pm, lowerBound, upperbound);
+
+                GenerateGenerations(run);
+                AverageOfAogFitness.Add(run.GetAverageOfGenerationsFitness());
+                AverageOfBogFitness.Add(run.GetBestOfGenerationsFitness());
+                AverageOfBestOfRunFitness.Add(run.BestOfRun.Fitness);
+
+            }
+
+            Console.WriteLine("**************************************************************\n" +
+                              "After 30 Runs of 50 Generations each...\n" +
+                              $"Average of AOG's: {AverageOfAogFitness.Average()}, StDev : {StandDev(AverageOfAogFitness)}\n" +
+                              $"Average of BOG's: {AverageOfBogFitness.Average()}, StDev : {StandDev(AverageOfBogFitness)}\n" +
+                              $"Average of BOR's: {AverageOfBestOfRunFitness.Average()}, StDev : {StandDev(AverageOfBestOfRunFitness)}\n" +
+                              $"**************************************************************\n");
+
+            Console.ReadLine();
+
+        }
+
+        private static void GenerateGenerations(GeneticAlgorithm run)
+        {
+            for (int i = 0; i < 51; i++)
+            {
+                run.AddNewGeneration();
 
                 if (i % 10 == 0)
                 {
-                    Console.WriteLine($"*******Generation {i}*******\n");
-                    Console.WriteLine("Best Fitness:\n");
-                    Console.WriteLine(Project1.CandidateInfo(Project1.GetBestFitness()));
-                    Console.WriteLine("Worst Fitness:\n");
-                    Console.WriteLine(Project1.CandidateInfo(Project1.GetWorstFitness()));
-                    Console.WriteLine("Best of Run:\n");
-                    Console.WriteLine(Project1.CandidateInfo(Project1.BestOfRun));
+                    Console.WriteLine($"*******Generation {i}*******");
+                    Console.WriteLine("Best Fitness:");
+                    Console.WriteLine(run.CandidateInfo(run.GetBestFitness()));
+                    Console.WriteLine("Worst Fitness:");
+                    Console.WriteLine(run.CandidateInfo(run.GetWorstFitness()));
+                    Console.WriteLine("Best of Run:");
+                    Console.WriteLine(run.CandidateInfo(run.BestOfRun));
                     Console.WriteLine("-----------------------------------------------");
                 }
             }
-            Console.ReadLine();
+        }
 
+        public static double StandDev(List<double> values)
+        {
+            double ret = 0;
+            var count = values.Count;
+            if (count > 1)
+            {
+                double avg = values.Average();
+                double sum = values.Sum(d => (d - avg) * (d - avg));
+                ret = Math.Sqrt(sum / count);
+            }
+            return ret;
         }
 
     }

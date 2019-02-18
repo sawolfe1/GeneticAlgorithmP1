@@ -16,6 +16,8 @@ namespace GeneticAlgorithmP1
         public Candidate BestOfRun { get; set; } = new Candidate();
         public List<Candidate> CurrentGeneration { get; set; }
         public List<List<Candidate>> Generations { get; set; } = new List<List<Candidate>>();
+        public double AverageOfGenerationsFitness { get; set; }
+        public double BestOfGenerationsFitness { get; set; }
 
         public GeneticAlgorithm(int populationSize, double crossoverRate, double mutationRate, int lowerBound, int upperBound)
         {
@@ -94,31 +96,22 @@ namespace GeneticAlgorithmP1
 
         private void InitializePopulation()
         {
-            //Console.WriteLine("Generation 0:\n" +
-            //                  "===================");
+
             for (int i = 0; i < PopulationSize; i++)
             {
                 var candidate = new Candidate();
                 CurrentGeneration.Add(candidate);
 
-                //Console.WriteLine($"X1 = {candidate.X1}\n" +
-                //                  $"X2 = {candidate.X2}\n" +
-                //                  $"X3 = {candidate.X3}\n" +
-                //                  $"Fitness = {candidate.Fitness}\n" +
-                //                  $"---------------------------");
 
             }
 
-            //Console.WriteLine($"Best Fitness: {CurrentGeneration.Select(x => x.Fitness).Min()}\n" +
-            //                  $"Average Fitness: {CurrentGeneration.Select(x => x.Fitness).Average()}\n");
+
         }
 
         public void AddNewGeneration()
         {
             var newGeneration = new List<Candidate>();
 
-            //Console.WriteLine($"Generation {Generations.Count}:\n" +
-            //                  "===================");
 
             for (int i = 0; i < PopulationSize; i++)
             {
@@ -126,18 +119,11 @@ namespace GeneticAlgorithmP1
 
                 newGeneration.Add(candidate);
 
-                //Console.WriteLine($"X1 = {candidate.X1}\n" +
-                //                  $"X2 = {candidate.X2}\n" +
-                //                  $"X3 = {candidate.X3}\n" +
-                //                  $"Fitness = {candidate.Fitness}\n" +
-                //                  $"---------------------------");
 
             }
 
             var min = newGeneration.Select(x => x.Fitness).Min();
 
-            //Console.WriteLine($"Best Fitness: {min}\n" +
-            //                  $"Average Fitness: {newGeneration.Select(x => x.Fitness).Average()}\n");
 
             CurrentGeneration = newGeneration;
             Generations.Add(newGeneration);
@@ -166,6 +152,33 @@ namespace GeneticAlgorithmP1
                    $"X3 = {candidate.X3}, \n" +
                    $"Fitness = {candidate.Fitness}, \n" +
                    $"Average of Generation = {CurrentGeneration.Select(x => x.Fitness).Average()}\n";
+        }
+
+        public double GetAverageOfGenerationsFitness()
+        {
+            var aog = new List<double>();
+            foreach (var generation in Generations)
+            {
+                aog.Add(generation.Select(x => x.Fitness).Average());
+            }
+
+            AverageOfGenerationsFitness = aog.Average();
+
+            return AverageOfGenerationsFitness;
+        }
+
+        public double GetBestOfGenerationsFitness()
+        {
+            var bog = new List<double>();
+            foreach (var generation in Generations)
+            {
+
+                bog.Add(generation.Min(x => x.Fitness));
+            }
+
+            BestOfGenerationsFitness = bog.Average();
+
+            return BestOfGenerationsFitness;
         }
 
     }
