@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Security.AccessControl;
 using System.Security.Cryptography.X509Certificates;
 
 namespace GeneticAlgorithmP1
@@ -12,6 +13,7 @@ namespace GeneticAlgorithmP1
 
         public double Fitness => Math.Pow(X1, 2) + Math.Pow(X2, 2) + Math.Pow(X3, 2);
 
+        public double Proportionality { get; set; }
 
         public Candidate()
         {

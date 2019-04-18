@@ -6,8 +6,29 @@ using System.Threading.Tasks;
 
 namespace GeneticAlgorithmP1
 {
+    public enum SelectionStrategy
+    {
+        BinaryTournament = 1,
+        FitnessProportional = 2,
+        Truncation = 3
+    }
+
+    public enum RecombinationStrategy
+    {
+        SinglePoint = 1,
+        TwoPoint = 2,
+        Uniform = 3
+    }
+
+    public enum MutationStrategy
+    {
+        Gaussian = 1,
+        Uniform = 2,
+        NonUniform = 3
+    }
     class GeneticAlgorithm
     {
+        public int GenerationsPerRun { get; set; }
         public int PopulationSize { get; set; }
         public double CrossoverRate { get; set; }
         public double MutationRate { get; set; }
@@ -18,26 +39,47 @@ namespace GeneticAlgorithmP1
         public List<List<Candidate>> Generations { get; set; } = new List<List<Candidate>>();
         public double AverageOfGenerationsFitness { get; set; }
         public double BestOfGenerationsFitness { get; set; }
+        public SelectionStrategy SelectionStrategy { get; set; }
+        public MutationStrategy MutationStrategy { get; set; }
+        public RecombinationStrategy RecombinationStrategy { get; set; }
 
-        public GeneticAlgorithm(int populationSize, double crossoverRate, double mutationRate, int lowerBound, int upperBound)
+        public GeneticAlgorithm(int generationsPerRun, int populationSize, double crossoverRate, double mutationRate, int lowerBound, int upperBound, int selectionStrategy, int recombinationStrategy, int mutationStrategy)
         {
             var gen1 = new List<Candidate>();
+            GenerationsPerRun = generationsPerRun;
             LowerBound = lowerBound;
             UpperBound = upperBound;
             PopulationSize = populationSize;
             CrossoverRate = crossoverRate;
             MutationRate = mutationRate;
             CurrentGeneration = gen1;
+            SelectionStrategy = (SelectionStrategy)selectionStrategy;
+            RecombinationStrategy = (RecombinationStrategy)recombinationStrategy;
+            MutationStrategy = (MutationStrategy)mutationStrategy;
             Generations.Add(gen1);
             InitializePopulation();
         }
 
         public Candidate Select(List<Candidate> currentCandidates)
         {
-            var potentialParent1 = BinaryTournament(currentCandidates);
-            var potentialParent2 = BinaryTournament(currentCandidates);
+            var candidate = new Candidate();
 
-            return potentialParent1.Fitness < potentialParent2.Fitness ? potentialParent1 : potentialParent2;
+            switch (SelectionStrategy)
+            {
+                case SelectionStrategy.BinaryTournament:
+                    var potentialParent1 = BinaryTournament(currentCandidates);
+                    var potentialParent2 = BinaryTournament(currentCandidates);
+                    return potentialParent1.Fitness < potentialParent2.Fitness ? potentialParent1 : potentialParent2;
+                case SelectionStrategy.FitnessProportional:
+                    return FitnessProportional(currentCandidates);
+                case SelectionStrategy.Truncation:
+                    var random = RandomGenerator.Random.Next(0, 5);
+                    var sortedCandidates = currentCandidates.OrderBy(x => x.Fitness).ToList();
+                    return sortedCandidates[random];
+                default:
+                    return candidate;
+            }
+
         }
 
         public Candidate BinaryTournament(List<Candidate> currentCandidates)
@@ -50,22 +92,61 @@ namespace GeneticAlgorithmP1
             return parent;
         }
 
+        public Candidate FitnessProportional(List<Candidate> currentCandidates)
+        {
+            var sortedCandidates = currentCandidates.OrderByDescending(x => x.Fitness).ToList();
+            var sumOfFitness = sortedCandidates.Sum(x => x.Fitness);
+            var previousValue = 0d;
+
+            foreach (var sortedCandidate in sortedCandidates)
+            {
+                sortedCandidate.Proportionality = previousValue + ((1 / Math.Abs(sortedCandidate.Fitness)) / sumOfFitness);
+                previousValue = sortedCandidate.Proportionality;
+            }
+
+            var random = RandomGenerator.Random.NextDouble();
+
+            if (random < sortedCandidates[0].Proportionality)
+                return sortedCandidates[0];
+
+            var cand = sortedCandidates.Last(x => x.Proportionality < random);
+
+            return cand;
+        }
+
         public Candidate Crossover(Candidate parent1, Candidate parent2)
         {
-            var crossoverPoint = RandomGenerator.Random.Next(1, 3);
             var child = new Candidate();
 
-            switch (crossoverPoint)
+            switch (RecombinationStrategy)
             {
-                case 1:
-                    child.X1 = parent1.X1;
-                    child.X2 = parent2.X2;
-                    child.X3 = parent2.X3;
+                case RecombinationStrategy.SinglePoint:
+                    var crossoverPoint = RandomGenerator.Random.Next(1, 3);
+                    switch (crossoverPoint)
+                    {
+                        case 1:
+                            child.X1 = parent1.X1;
+                            child.X2 = parent2.X2;
+                            child.X3 = parent2.X3;
+                            break;
+                        case 2:
+                            child.X1 = parent1.X1;
+                            child.X2 = parent1.X2;
+                            child.X3 = parent2.X3;
+                            break;
+                    }
                     break;
-                case 2:
-                    child.X1 = parent1.X1;
+
+                case RecombinationStrategy.TwoPoint:
+                    child.X1 = parent2.X1;
                     child.X2 = parent1.X2;
                     child.X3 = parent2.X3;
+                    break;
+
+                case RecombinationStrategy.Uniform:
+                    child.X1 = RandomGenerator.Random.NextDouble() < 0.5 ? parent1.X1 : parent2.X1;
+                    child.X2 = RandomGenerator.Random.NextDouble() < 0.5 ? parent1.X2 : parent2.X2;
+                    child.X3 = RandomGenerator.Random.NextDouble() < 0.5 ? parent1.X3 : parent2.X3;
                     break;
             }
 
@@ -75,17 +156,34 @@ namespace GeneticAlgorithmP1
         public Candidate Mutate(Candidate child)
         {
 
-            if (RandomGenerator.Random.NextDouble() <= MutationRate)
-                child.X1 += ((child.X1 + GetMutantFactor()) % UpperBound) + LowerBound;
-
-
-            if (RandomGenerator.Random.NextDouble() <= MutationRate)
-                child.X2 = ((child.X2 + GetMutantFactor()) % UpperBound) + LowerBound;
-
-
-            if (RandomGenerator.Random.NextDouble() <= MutationRate)
-                child.X3 += ((child.X3 + GetMutantFactor()) % UpperBound) + LowerBound;
-
+            switch (MutationStrategy)
+            {
+                case MutationStrategy.Gaussian:
+                    if (RandomGenerator.Random.NextDouble() <= MutationRate)
+                        child.X1 += ((child.X1 + GetMutantFactor()) % UpperBound) + LowerBound;
+                    if (RandomGenerator.Random.NextDouble() <= MutationRate)
+                        child.X2 = ((child.X2 + GetMutantFactor()) % UpperBound) + LowerBound;
+                    if (RandomGenerator.Random.NextDouble() <= MutationRate)
+                        child.X3 += ((child.X3 + GetMutantFactor()) % UpperBound) + LowerBound;
+                    break;
+                case MutationStrategy.Uniform:
+                    if (RandomGenerator.Random.NextDouble() <= MutationRate)
+                        child.X1 = RandomGenerator.Random.Next(-1, 5) + RandomGenerator.Random.NextDouble();
+                    if (RandomGenerator.Random.NextDouble() <= MutationRate)
+                        child.X2 = RandomGenerator.Random.Next(-1, 5) + RandomGenerator.Random.NextDouble();
+                    if (RandomGenerator.Random.NextDouble() <= MutationRate)
+                        child.X3 = RandomGenerator.Random.Next(-1, 5) + RandomGenerator.Random.NextDouble();
+                    break;
+                case MutationStrategy.NonUniform:
+                    var decrement = 1 - ((Generations.Count - 1) / (float)GenerationsPerRun);
+                    if (RandomGenerator.Random.NextDouble() <= MutationRate * decrement)
+                        child.X1 = RandomGenerator.Random.Next(-1, 5) + RandomGenerator.Random.NextDouble();
+                    if (RandomGenerator.Random.NextDouble() <= MutationRate * decrement)
+                        child.X2 = RandomGenerator.Random.Next(-1, 5) + RandomGenerator.Random.NextDouble();
+                    if (RandomGenerator.Random.NextDouble() <= MutationRate * decrement)
+                        child.X3 = RandomGenerator.Random.Next(-1, 5) + RandomGenerator.Random.NextDouble();
+                    break;
+            }
             return child;
         }
 
@@ -118,12 +216,9 @@ namespace GeneticAlgorithmP1
                 var candidate = Mutate(Crossover(Select(CurrentGeneration), Select(CurrentGeneration)));
 
                 newGeneration.Add(candidate);
-
-
             }
 
             var min = newGeneration.Select(x => x.Fitness).Min();
-
 
             CurrentGeneration = newGeneration;
             Generations.Add(newGeneration);
